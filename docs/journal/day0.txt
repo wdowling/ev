@@ -1,0 +1,11 @@
+16/12/2015
+----------
+This is a small journal used to keep track of my progress in learning OS design 
+and development.
+
+The first two tasks that need to be done (apart from a mountain of reading), are
+setting up a development environment and booting a simple "Hello, world" program
+in assembler.
+
+For a development environment I am using a Joyent zone on SmartOS. I hope to 
+utilize DTrace and mdb if that is even possible.
