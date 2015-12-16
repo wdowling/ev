@@ -1,0 +1,30 @@
+
+### Overview
+
+ev intends to become a small Unix-clone operating system. Self contained with 
+its own userland applications, it will be somewhat similar to *BSD or illumos.
+
+### An Operating System
+
+The internals of an operating system are vast and complex. The current range
+of operating systems available run on a large codebase comprising of hundreds
+or thousands of developers. Due to constrained resources, ev will be minimal at
+best, hopefully similar in vain to Minix or xv6 (one day..).
+
+At its heart, an operating system generally carries out the following:
+* Process management
+* Scheduling tasks
+* Manage memory
+* Manage hardware resources including disks, network and graphics cards
+* Filesystem management
+* Network communication
+* Signal processing
+
+These activities are managed by the kernel which forms the core of the operating
+system. 
+
+### Development Process
+
+Due to the size of ev, the design will be simple to begin with, using the 
+notes found under the documentation/journal/ directory to track.
+
