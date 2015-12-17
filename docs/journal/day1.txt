@@ -1,0 +1,159 @@
+17/12/2015
+----------
+
+Some notes from today. Mostly research and random hacking to familiarize myself
+with ASM.
+
+## Summary
+
+When a device boots, the first task carried out is the POST (Power On Self 
+Test). This is responsible for locating a bootable device. Once a bootable
+device is discovered (a hard disk for example), the BIOS searchs the for the
+boot sector. The byte sequence 0x55, 0xAA in bytes 511 and 512 define the 
+boot sector. Once the boot sector is found, it is loaded into memory at
+0x0000:0x7c00 (segment 0, address 0x7c00). The MBR holds executable code
+at offset 0x0000 - 0x01bd which is followed by table entries for the four
+primary partitions. Each entry uses 16 bytes (0x01be - 0x01fd) and a 2 byte
+signature (0x01fe - 0x01ff). The bootloader then loads the kernel into memory 
+and control is passed to it.
+
+## Detail
+
+Diagram:
+
+   |-------------------- Real Mode ----------------------------||------------- Protected Mode ------------|
+    BIOS Init---->MBR---->Boat Loader---->Early Kernel Init----||---->Full Kernel Init---->First User Proc
+
+Real Mode is where the bootup process begins in. It is an operating mode which 
+provides exactly 1 MiB of addressable memory with no support for memory 
+protection, multitasking or code privilege levels. Real mode exists for backward
+compatibility reasons so that software can be run from older x86 chips.
+
+The BIOS reads the first 512 byte sector of the hard disk which is called the 
+Master Boot Record. It contains a small bootstrapping program for the OS 
+followed by a partition table for the disk. The BIOS just loads the contents
+of 0x7c00 and executes the code that exists in that location.
+
+The MBR is separated into five segments which total 512 bytes:
+
+- Code [440 bytes]
+- Disk Signature [4 bytes]
+- Nulls [2 bytes]
+- Partition Table [64 bytes]
+  - Partition Entry 0 [16 bytes]
+  - Partition Entry 1 [16 bytes]
+  - Partition Entry 2 [16 bytes]
+  - Partition Entry 3 [16 bytes]
+- MBR Signature [2 bytes]
+
+The code in the MBR code be custom code, LILO or Grub. Since it is so small it 
+operates in two stages:
+Stage 1:
+- MBR loads code which in turn loads another sector from the disk which contains
+  additional bootstrap code.
+
+Stage 2:
+- MBR is now in stage 2 and this code is what fires up the kernel.
+
+One important point to note is that Real Mode only provides 640K of RAM but your
+kernel might be more than that. To get around this, Unreal Mode is used where 
+the bootloader switches back and forth between Real Mode and Protected Mode to
+access memory addresses greater than 1MB. At this stage the kernel is in memory
+in both Real Mode (less than 640K) and Protected Mode (any address over 1MB)
+and the kernel initialization starts.
+
+Using Linux as an example the kernel initialization goes like this:
+Real Mode:
+- arch/x86/boot/header.S jumps to start_of_setup
+- arch/x86/boot/header.S start_of_setup runs the startup code 
+  - sets up a stack, zeros the bss segment and jumps to C code
+  header.S 
+      .globl  _start
+  _start:
+                # Explicitly enter this as bytes, or the assembler
+                # tries to generate a 3-byte jump here, which causes
+                # everything else to push off to the wrong offset.
+                .byte   0xeb            # short (2-byte) jump
+                .byte   start_of_setup-1f
+  .
+  .
+  .
+
+  start_of_setup:
+  # Force %es = %ds
+        movw    %ds, %ax
+        movw    %ax, %es
+        cld
+  .
+  .
+  .
+- main() detects memory layout, sets video mode and carries out some other
+  initialization work and then calls go_to_protected_mode() which calls
+  protected_mode_jump assembly routine.
+  main.c
+  void main(void)
+  {
+          /* First, copy the boot header into the "zeropage" */
+          copy_boot_params();
+
+          /* Initialize the early-boot console */
+          console_init();
+          if (cmdline_find_option_bool("debug"))
+                  puts("early console in setup code\n");
+
+          /* End of heap check */
+          init_heap();
+
+          /* Make sure we have all the proper CPU support */
+          if (validate_cpu()) {
+                  puts("Unable to boot - please use a kernel appropriate "
+                       "for your CPU.\n");
+                  die();
+          }
+
+          /* Tell the BIOS what CPU mode we intend to run in. */
+          set_bios_mode();
+
+          /* Detect memory layout */
+          detect_memory();
+
+          /* Set keyboard repeat rate (why?) and query the lock flags */
+          keyboard_init();
+
+          /* Query Intel SpeedStep (IST) information */
+          query_ist();
+
+          /* Query APM information */
+  #if defined(CONFIG_APM) || defined(CONFIG_APM_MODULE)
+          query_apm_bios();
+  #endif
+
+          /* Query EDD information */
+  #if defined(CONFIG_EDD) || defined(CONFIG_EDD_MODULE)
+          query_edd(); 
+  #endif
+
+          /* Set the video mode */
+          set_video();
+
+          /* Do the last things and invoke protected mode */
+          go_to_protected_mode();
+  }
+- calls startup_32 which initializes some registers and calls 
+  decompress_kernel().
+- Kernel is now decompressed and start_kernel() is called which begins
+initializing the various kernel subsystems.
+
+A very brief outline of the bootup process from POST to start_kernel(), which is
+only part of the story.
+
+## Useful Links
+* Real Mode https://en.wikipedia.org/wiki/Real_mode
+* Unreal Mode https://en.wikipedia.org/wiki/Unreal_mode
+* Motherboard Chipsets and the Memory Map http://duartes.org/gustavo/blog/post/motherboard-chipsets-memory-map/
+* What Every Programmer Should Know About Memory http://www.akkadia.org/drepper/cpumemory.pdf
+* Boot sequence [http://wiki.osdev.org/Boot_Sequence]
+* Booting process [http://www.osdever.net/tutorials/view/the-booting-process & http://www.osdever.net/tutorials/view/booting-process]
+* GRUB2 [http://wiki.osdev.org/GRUB_2]
+* Hello world bootloader [http://www.osdever.net/tutorials/view/hello-world-boot-loader]
+* Kernel Boot Process http://duartes.org/gustavo/blog/post/kernel-boot-process/
