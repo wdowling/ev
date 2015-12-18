@@ -1,0 +1,92 @@
+18/12/2015
+----------
+
+I will be concentrating on (re)learning Assembly Language programming over the 
+next few weeks. Since the booting the kernel invovles a mashing of ASM and C, it
+makes sense to get a proper grounding of ASM again. 
+
+(Much of these notes and examples are lifted from Assembly Language - Step by
+Step).
+
+The most important skill in learning assembly language is understanding memory
+addressing. The job of the CPU is to execute the code located at a particular
+place in memory.
+
+- Most machine instructions occupy more than a single byte.
+- Many are 2 or 4 bytes in length.
+- instruction pointer: contains address of next instruction to execute.
+- Three memory models exists:
+  - Real mode flat model (not in use)
+    - CPU can use up to 1MB of addressable memory.
+  - Real mode segmented model (not in use)
+    - CPU can use up to 1MB of addressable memory (real mode memory).
+    - Addresses in 1MB of memory run from 00000H to 0FFFFFH.
+    - CPU can read memory in 64K chunks only (segments).
+    - A program make use 4 or 5 segments only, each of which begins at any of 
+      the 64k paragraph boundaries existing in the megabyte of memory.
+    - 64k segments start at 0 and end at 65,565 (0FFFFH). The segment address
+      is the the address at the segment begins (also the number of the paragraph
+      boundary).
+    - Each segment address is separated by 16 bytes (not to be confused with the
+      actual size of the segment)..
+    - The highest segment address starts at 0FFFFH which is 16 bytes from the
+      very top of the real mode's 1 megabyte of memory.
+    - Segments may be up to 64k in size.
+  - Protected mode (current standard)
+    - Segment registers exist but work differently.
+    - Protected by the OS so you can't (or it's just difficult) modify segment
+      registers.
+    - Helps multitasking programs to ensure they both don't write to devices
+      at the same time.
+- segment registers: memory pointers. Points to a memory address.
+  - CS: code segment register - segment address of currently executing 
+    instruction
+  - DS: data segment register - variables and other data.
+  - SS: stack segment register - address for the stack.
+  - ES: extra segment register - spare segment for specifying a location in 
+    memory.
+  - FS/GS: Similar to ES.
+- Every location in memory has two addresses. The first is the address of the 
+  segment, the second is the offset address which is the distance of the byte 
+  from the start of that segment. Written as segment:offset.
+  Example:
+    address 0001:0019
+             ^    ^
+             |----| ----- location where the segment begins                     
+                  | ---- location is 19 bytes from the segment address beginning
+- There exists eight 16-bit general-purpose registers: AX, BX, CX, DX, BP, SI,
+  DI, SP.
+- 32bit architecture extended the size (by double) so the names were modified to
+  become: EAX, EBX, ECX, EDX, EBP, ESI, EDI, ESP.
+- The 16bit registers "exist" inside the 32bit registers and can be referenced
+  directly by their name.
+- EAX, EBX, ECX and EDX are also made up of 16bit registers which are in turn
+  divided into 8bit halves.
+
+               32 bits EAX
+  |--------------------------------|
+         16 bits AX
+  |----------------|
+   8bits AH  8bits AL 
+  |-------| |------|
+
+- Instruction Pointer - IP or EIP depending on mode.
+- Contains the offset address of the next machine instruction to be executed in
+  the current code segment. Not the actual address of the next machine
+  instruction, but the number of bytes to its address.
+- Resides in a code segment which is an area of memory where machine
+  instructions are stored.
+- CS contains the current code segment.
+- Each time an instruction is executed, the IP is incremented by a number of
+  bytes. This number is in fact the size of the instruction just executed.
+- The point of the IP is to execute instruction in a certain size so that the
+  IP lands on the next instruction to execute.
+- CS and IP contain the full address of the next machine instruction to be
+  executed (think segment:offset).
+- In Real Mode, the IP can point anywhere within 1MB of memory (16bit).
+- In Protected Mode, the IP can point anywhere within 4GB of memory (32bit).
+- The IP is the only register that cannot be written to.
+- 64 bit assembly replaces 'e' with 'r' for the registers: rax, rbx etc.
+- 64 bit adds eight general purpose registers r8..r15.
+- 65 bit add eight 128bit SSE registers which brings the total to 16 registers
+  including those from 32bit.x
