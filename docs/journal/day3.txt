@@ -1,0 +1,30 @@
+19/12/2015
+----------
+
+Assembly Language
+
+- Endianness
+  - lsb is at lowest offset.
+  - msb is at highest offset.
+- lsb at lowest offset is Little Endian. Read right to left.
+- msb at lowest offset is Big Endian. Read left to right.
+- Translator: generate machine instructions that CPU can understand.
+- Compiler: reads language source files and writes out object code files.
+- Assembler: translates assembly language into object code.
+- Assembly has mnemonics to help programmers write instructions. For example the
+  mnemonic for binary instruction 9CH is PUSHF.
+- mnemonics work with operands to carry out tasks (load digits, count etc) and
+  taken together, a mnemonic and its operand are called an instruction.
+  Example:
+      mov ebp,esp    ; Save the stack pointer in ebp or 8BH ECH in machine 
+                       instruction
+- Steps for assembling and linking:
+  - Create .o object file.
+  - Link and create executable.
+    - To build the executable, the linker firsts builds an index called a sumbol
+      table, which contains an entry for every named item in every object module
+      it links. Each entry has information about what name (symbol) refers to 
+      what location within the module.
+    - Relocatability: Variables in a program are not located at a particular
+      physical address, but are located at an offset from the beginning of the
+      file.
