@@ -1,0 +1,32 @@
+21/12/2015
+----------
+
+## Notes on Assembly Language.
+
+- Some differences between Linux/*BSD/illumos ASM programming.
+- illumos ASM is poorly documented.
+- FreeBSD provides good documentation so far.
+- Some items to note:
+  - Intel syntax
+    mov dst, src
+    int 80H
+  - AT&T syntax
+    mov src, dst
+    int 0x80
+  - Linux/*BSD/illumos use AT&T syntax.
+  - Syscalls widely differ i.e. int 0x80 on Linux is int $91 on illumos.
+  - pushl is widely used on illumos to set base-pointer.
+- Took a slight detour and built a cross-compiler on Debian using instructions
+  from [http://wiki.osdev.org/GCC_Cross-Compiler]
+- Located under /opt/cross.
+- Working on [http://wiki.osdev.org/Bare_bones]
+  - Hello, World kernel booted.
+  - boot.s to set registers, memory and stack.
+  - kernel.c to print string.
+  - linker.ld to link object files created.
+  - Runs in qemu using `qemu-system-i386 -curses -cdrom myos.iso`.
+  - Need to pick through the source and document what the source does exactly.
+
+## Useful links
+- [https://www.freebsd.org/doc/en/books/developers-handbook/x86.html]
+- [http://www.int80h.org/]
