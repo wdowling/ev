@@ -1,0 +1,53 @@
+29/12/2015
+----------
+
+### Notes on Assembly
+
+Registers
+
+---------------------------------------------------------------
+16bit | 32bit | 64bit |               Description             |
+---------------------------------------------------------------
+ ax   |  eax  |  rax  | accumulator register
+ bx   |  ebx  |  rbx  | base register
+ cx   |  ecx  |  rcx  | counter
+ dx   |  edx  |  rdx  | data register
+ sp   |  esp  |  rsp  | stack pointer
+ bp   |  ebp  |  rbp  | base pointer
+      |   rn  |  rnd  | n = 8..15, general purpose registers
+ si   |  esi  |  rsi  | source index for string operations
+ di   |  edi  |  rdi  | destination index for string operations
+ ip   |  eip  |  rip  | instruction pointer
+
+Instruction Suffixes
+
+- b / byte / 8 bits
+- s / short / 16 bits
+- w / word / 16 bits
+- l / long / 32 bits
+- q / quad / 64 bits
+
+Simple explanation of Hello World:
+
+msg: .ascii "Hello World\n"    # set the msg variable
+
+_start:
+    movl $4, %eax    # use the write syscall. In Linux it is defined
+                     # under arch/x86/include/asm/unistd_64.h as:
+                     #     #define __NR_write 1
+    movl $1, %ebx    # write to stdout (0 = stdin, 1 = stdout)
+    movl $msg, %ecx  # use the "Hello World" string
+    movl $12, %edx   # going to write 12 characters
+    int $0x80
+
+    movl $1, %eax   # use the exit syscall. In Linux it is defined
+                    # under arch/x86/include/asm/unistd_64.h as:
+                    #     #define __NR_exit 60
+    movl $0, %ebx   # use error code 0
+    int $0x80
+
+### Useful links
+
+[https://docs.oracle.com/cd/E19253-01/817-5477/817-5477.pdf]
+
+
