@@ -1,0 +1,90 @@
+30/12/2015
+----------
+
+### Notes on Assembly
+
+- Using AT&T syntax
+- Moved development to use OpenBSD
+- Building simple assembly program failing with:
+
+/tmp//ccveqYEt.o: In function `_start':
+(.text+0x0): multiple definition of `_start'
+/usr/lib/crt0.o:(.text+0x0): first defined here
+/usr/bin/ld: /tmp//ccveqYEt.o: relocation R_X86_64_32S against `a local symbol' can not be used when making a shared object; recompile with -fPIC
+/tmp//ccveqYEt.o: could not read symbols: Bad value
+collect2: ld returned 1 exit status
+
+- The problem seems to be tied with how the object is linked. 
+- Since I should not be relying on the OS compiler, I should avoid
+  even experimenting with the local compiler.
+- Use a cross-compiler.
+
+### Building a GCC cross-compiler on OpenBSD
+
+- Downloads:
+  binutils - ftp://ftp.gnu.org/gnu/binutils/binutils-2.25.tar.gz
+  gcc - ftp://ftp.gnu.org/gnu/gcc/gcc-4.9.2/gcc-4.9.2.tar.gz
+  texinfo - http://ftp.gnu.org/gnu/texinfo/texinfo-6.0.tar.gz
+
+- Setup:
+$ su - 
+# export PKG_PATH=http://ftp.fr.openbsd.org/pub/OpenBSD/$(uname -r)/packages/$(machine -a)/
+# pkg_add gmake-4.1p0
+# pkg_add gmp
+# pkg_add mpc
+# pkg_add libmpc
+# pkg_add mpfr
+$ export PREFIX="/usr/local/cross"
+$ export TARGET=i686-elf
+$ export PATH="$PREFIX/bin:$PATH"
+$ mkdir src
+$ cd src/
+$ ftp ftp://ftp.gnu.org/gnu/binutils/binutils-2.25.tar.gz 
+$ ftp ftp://ftp.gnu.org/gnu/gcc/gcc-4.9.2/gcc-4.9.2.tar.gz
+$ ftp http://ftp.gnu.org/gnu/texinfo/texinfo-6.0.tar.gz
+$ mkdir build-binutils
+$ mkdir build-gcc
+$ mkdir build-texinfo
+$ tar xzf binutils-2.25.tar.gz
+$ tar xzf gcc-4.9.2.tar.gz
+$ tar xzf texinfo-6.0.tar.gz
+$ cd build-binutils/
+$ ../binutils-2.25/configure --target=$TARGET --prefix="$PREFIX" --with-sysroot\
+  --disable-nls --disable-werror
+$ gmake
+$ su - 
+# cd /home/wmd/src/build-binutils/ && gmake install
+$ cd build-gcc/
+$ ../gcc-4.9.2/configure --target=$TARGET --prefix="$PREFIX" \
+  --with-gmp=/usr/local --with-mpfr=/usr/local --with-mpc=/usr/local \ 
+  --disable-nls --enable-languages=c,c++ --without-headers
+$ gmake all-gcc
+$ gmake all-target-libgcc
+$ su -
+# cd /home/wmd/src/build-gcc/ && gmake install-gcc
+# cd /home/wmd/src/build-gcc/ && gmake install-target-libgcc
+# ln -s /usr/local/cross/libexec/gcc/i686-elf/4.9.2/liblto_plugin.so.0.0 /usr/local/cross/libexec/gcc/i686-elf/4.9.2/liblto_plugin.so 
+  { this is for when we link below, it expects to find liblto_plugin.so bit OpenBSD
+    uses liblto_plugin.so.0.0 }
+$ /usr/local/cross/bin/i686-elf-gcc
+i686-elf-gcc: fatal error: no input files
+compilation terminated.
+
+Now that the cross-compiler is setup, we can compile ASM without having to link
+against the OS libc.
+
+Compiling the example code under [http://wiki.osdev.org/Bare_Bones]:
+
+$ /usr/local/cross/bin/i686-elf-as boot.s -o boot.o
+$ ls -l boot.o                                 
+-rw-r--r--  1 wmd  wmd  892 Dec 30 15:51 boot.o
+$ /usr/local/cross/bin/i686-elf-gcc -c kernel.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
+$ ls -l kernel.o                                  
+-rw-r--r--  1 wmd  wmd  2196 Dec 30 15:51 kernel.o
+$ /usr/local/cross/bin/i686-elf-gcc -T linker.ld -o myos.bin -ffreestanding -O2 -nostdlib boot.o kernel.o -lgcc
+$ ls -l myos.bin                                  
+-rwxr-xr-x  1 wmd  wmd  6044 Dec 30 15:55 myos.bin
+
+Now we have our kernel - myos.bin.
+
+
