@@ -1,0 +1,32 @@
+4/01/2016
+---------
+
+### Assembly/low-level notes
+
+Data Access Modes:
+- register addressing mode: instruction contains a register to access rather
+  than a memory location.
+- direct addressing mode: instruction contains the memory address to access.
+- indexed addressing mode: instruction contains the memory address to access,
+  plus an index register to offset that address.
+- indirect addressing mode: instruction contains a register that contains a
+  pointer to where the data should be accessed.
+- base pointer addressing mode: Similar to indirect addressing, but included
+  is an offset to add to the register's value for lookup.
+
+x64 assembly on UNIX is quite different. It looks like push/pop is used more
+and the _start section is sensitive to crt0.o. The following code fails when
+executed:
+
+.section .text
+.globl _start
+_start:
+    nop
+    movq $1, %rax
+    movq $13, %rdi
+    int $0x80
+
+This *should* work but need to read more of the document below to figure out
+the details:
+
+[https://www.exploit-db.com/papers/17746/]
