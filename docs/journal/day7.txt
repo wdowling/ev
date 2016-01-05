@@ -1,0 +1,77 @@
+5/12/2015
+---------
+
+### Assembly and low-level notes
+
+* OpenBSD seems to be slightly different when developing ASM.
+  - Uses C calling conventions.
+  - Tag binary as an OpenBSD binary
+
+The binary tagging is included by adding the following secion:
+
+.section ".note.openbsd.ident", "a"
+	 .p2align 2
+	 .long 8
+	 .long 4
+	 .long 1
+	 .ascii "OpenBSD\0"
+	 .long 0
+	 .p2align 2
+
+man 5 elf shows details of each section. In summary:
+
+.note 	  # Holds information in the Note Section format. OpenBSD native
+	  # executables usually contain .note.openbsd.ident section to identify
+	  # themselves for the kernel to bypass any compatibility ELF binary
+	  # emulation tests when loading the file.
+
+All ELF Note elements are made up of the same basic structure:
+    Name Size 	      4 bytes (integer)
+    Desc Size	      4 bytes (integer)
+    Type 	      4 bytes (usually interpreted as an integer)
+    Name	      variable size, padded to a 4 byte boundary
+    Desc	      variable size, padded to a 4 byte boundary
+
+* Writing ASM on 64bit is also different, use pushq/movq/popq etc.
+* OpenBSD uses mroe push/pop than mov for registers.
+* To build and link we have explicitly state 64bit and static:
+
+  $ as --64 hello.s -o hello
+  $ ld -nopie -Bstatic hello.o -o hello
+  $ ./hello
+  hello$
+
+* The following code is a working example:
+
+.section ".note.openbsd.ident", "a"
+	 .p2align 2
+	 .long 0x8
+	 .long 0x4
+	 .long 0x1
+	 .ascii "OpenBSD\0"
+	 .long 0x0
+	 .p2align 2
+
+.section .data
+msg:	 .ascii "hello"
+
+.section .text
+.global _start
+_start:
+	pushq $0x4
+	popq %rax
+	pushq $0x1
+	popq %rdi
+	pushq $msg
+	popq $rsi
+	pushq $0x5
+	popq %rdx
+	syscall
+	pushq $1
+	popq %rax
+	pushq $0
+	popq %rdi
+	syscall
+
+Finish reading [https://www.exploit-db.com/papers/13219/] (32bit specific)
+Stackoverlow [http://stackoverflow.com/questions/27880841/why-does-this-assembly-program-produce-no-output]
