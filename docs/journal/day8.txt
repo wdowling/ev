@@ -1,0 +1,75 @@
+6/01/2016
+---------
+
+## Assembly Notes
+
+* Simple exit syscall in assembly:
+
+.section ".note.openbsd.ident", "a"
+        .p2align 2
+	.long 0x8
+	.long 0x4
+	.long 0x1
+	.ascii "OpenBSD\0"
+	.long 0x0
+	.p2align 2
+.section .text
+.globl _start
+_start:
+        pushq $1        # Copy value 1 (exit syscall) to %rsp 
+        popq %rax       # Copy value in %rsp to %rax
+	pushq $0        # Copy value 0 (return value) to %rsp
+	popq %rdi       # Copy value in %rsp to %rdi
+	syscall         # Execute syscall in register rax (exit)
+
+64 bit notes from https://www.cs.cmu.edu/~fp/courses/15213-s07/misc/asm64-handout.pdf
+* Use quad words (pushq/popq) instead of long words (pushl/popl)
+* No stack frame is generated.
+* 16 registers, each 64 bits long.
+
+Revisiting the basic kernel.
+- boot.s
+The boot.s file carries out several functions:
+ * Declare multiboot header
+   These are constants used for the multiboot header. We align modules on page
+   boundaries, provide a memory map, provide a magic number that lets the
+   bootloader find the header and create a checksum to prove that we are in
+   multiboot.
+   The next part is to declare a header in the Multiboot Standard. The
+   bootloader will search for this header which will indicate that it is the
+   start of the program
+ * Create stack
+   Since the esp could be pointing anywhere, we must define a small stack
+   that can be controlled. The stack is 16k in size.
+ * Set up stack and call the kernel
+   _start is the beginning of the kernel (entry point). At this point we are
+   in kernel mode. There is no OS, everything mus be written from scratch. The
+   first thing that needs to be done is to set up the stack. Once esp points
+   to the top of the stack, we can call some C code which will be the beginning
+   of the kernel.
+ * One thing to remember is that there are no libraries that can be used. No
+   printf etc. These must be written from scratch. The kernel.c used does the 
+   following:
+   /* kernel_main which is called from boot.s */
+   void kernel_main() {
+     /* Initialize the terminal */
+     terminal_initialize();
+     /* Write text to console screen */
+     terminal_writestring("Hello, world\n");
+   }
+
+   void terminal_initialize() - this function sets colors and screenmode for
+   the OS. It defines the width and the height of the screen, defines what color
+   the text will appear and what color the background will be.
+
+   void terminal_writestring(const char *data) - gets the size of the string to
+   be written, for each character it calls terminal_putchar().
+
+   void terminal_putchar(char c) - It first calls terminal_putentryat() which
+   takes the character, and prints it to the top left of the screen. As each 
+   character is passed, it increments the column number and prints the character
+   again.
+
+[Chapter 14. The Design and Implementation of the 4.4BSD Operating System]
+
+
