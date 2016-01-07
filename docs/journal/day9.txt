@@ -1,0 +1,86 @@
+7/01/2016
+---------
+
+## Hardware Interaction
+
+The previous day showed that after the bootloader calls our C code (kernel), 
+control is handed over. At this point we're sitting in memory with nothing. 
+Everything has to be built from scratch. For example to print text to the
+console, there are no libraries to interact with the monitor. There is no
+library to print either. We must rely on low-level changes of the screen
+colours.
+
+Writing text to the screen involves using the framebuffer. It is a hardware
+device that displays a buffer of memory on the screen. 
+* Contains color values of every pixel on the screen.
+* Stored in 1bit binary, 4bit palettized, 8bit palettized, 16bit high color,
+  24bit true colour.
+* Memory required to drive the frame buffer depends on the resolution of the
+  output signal, the colour depth and the palette size.
+* 80 columns, 25 rows. Row and column indices start at 0.
+* Writing text to console via framebuffer is done with memory mapped I/O.
+* Starting addess for the framebuffer is 0x000B8000 - VGA compatible text mode
+  * Each screen character is represented by a 16bit word - two bytes aligned.
+  * Each bit controls a different attribute such as color, blinking etc.
+  * Fonts are monospace raster fonts containing 256 glyphs. 
+  * Two ways to access VGA text-mode. The first is through the Video BIOS
+    interface and the second is through RAM and I/O ports. For this project
+    we will be using RAM and I/O ports since they are considerbly faster.
+  * VGA text buffer is located at physical memory address 0xB800. 
+  * Text buffer data can be read and written and bitwise operations applied.
+* Available colours in VGA text mode:
+  Color         Value
+  -------------------
+  Black             0
+  Blue              1
+  Green             2
+  Cyan              3
+  Red               4 
+  Magenta           5
+  Brown             6
+  Light grey        7
+  Dark grey         8
+  Light blue        9
+  Light green      10
+  Light cyan       11
+  Light red        12
+  Light magenta    13
+  Light brown      14
+  White            15
+
+* If we want to write the character 'A' to the screen. We use the ASCII
+  table lookup and see that A corresponds to 0x41. Next we determine the
+  foreground colour (White: 15) and the background colour (Black: 0). 
+
+  /*
+   * vga_write() takes four parameters:
+   *      fb : location of frame buffer, for example 0 to start at the
+   *	       beginning.
+   *	  ch : character to write, for example 'A'.
+   * 	  FG_COLOR : foreground (text) colour.
+   *	  BG_COLOR : background (screen) colour.
+   */
+  vga_write(fb, ch, FG_COLOR, BG_COLOR);
+
+  /*
+   * The framebuffer is a pointer to the memory address 0xB8000.
+   *     char *framebuffer = (uint16_t*) 0xB8000;
+   * We assign the character to the first location in the memory address.
+   * We set the foreground and background colours and assign them to the next
+   * location in memory.
+   */
+  void 
+  vga_write(unsigned int fb, char ch, unsigned char FG_COLOR, unsigned char BG_COLOR)
+  {
+      framebuffer[fb] = ch;
+      framebuffer[fb + 1] = ((FG_COLOR & 0x0F) << 4) | (BG_COLOR & 0x0F)
+  }
+
+Next is to step through the basic_kernel written and piece together how the
+terminal is initialized, how the colours are set and how the entries are
+written.
+
+## Notes
+
+* [https://en.wikipedia.org/wiki/Framebuffer]
+* [https://en.wikipedia.org/wiki/VGA-compatible_text_mode]
