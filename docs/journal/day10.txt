@@ -1,0 +1,72 @@
+8/1/2016
+--------
+
+## VGA Initialization
+
+Moving away from the bootloader assembly code, let us look at the beginning of
+the operating system initialization.
+
+The bootloader has landed us in memory space without any libraries, binaries,
+filesystems etc. How do we know we're operating correctly? The primary method is
+to be able to read data on the screen. Again due to lack of libraries we must
+interact directly with the framebuffer. To put it simply, we need to define 
+foreground and background colours, set the ASCII character we want to write and
+write it to a memory address. All of this is carried out in VGA text mode which
+is a standardized method of outputting information to screen. The good thing 
+with this mode is that the initial framebuffer memory address is the same for
+all devices : 0xB8000 - basically column 0, row 0.
+
+### The Code
+
+Below I will outline some steps to building the code, leading to actual source.
+
+1. The first part of the code (let's assume that this file kernel.c was called
+   by the bootloader) should define the colour constants. These are known
+   constants. We also need to define the size of the console screen. 80 x 25 
+   for example means an 80 character column x 25 character row.
+
+2. To start at the beginning function, we declare the entry function:
+
+       void
+       kernel_main()
+       {
+       }
+
+    The main function does not have any return values.
+
+3. Within the kernel_main() function, the console must be initialized. What this
+   means is that we need to define the framebuffer address, draw the size of the
+   console and set the colours.
+
+
+       void
+       init_console()
+       {
+               /* Set framebuffer memory address. */
+               /* Set height and width of console. */
+               /* Set colour of the console. */
+       }
+
+       void
+       kernel_main()
+       {
+           init_console();
+       }
+
+4. Now that the console is ready, we can write something to the screen. Note
+   that we do not need to return anything from init_console(). Once it is
+   initialized we can move on to writing our text.
+
+       void
+       kernel_main()
+       {
+           init_console();
+           write_console("VGA Initialized.");
+       }
+
+5. The write_console() function takes each character, determines the colour
+   and writes it to the framebuffer. The idea is to write to the memory address
+   0xB8000 and increment for every character we wish to write.
+
+Next step will be to refine the code already used in the OSDev site and tailor
+it to suit this project.
