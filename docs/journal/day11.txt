@@ -1,0 +1,95 @@
+9/1/2015
+--------
+
+## VGA writing and Framebuffer
+
+When writing to the framebuffer (memory address 0xB8000), each character is
+made up of two 8 byte words. The rightmost 8 bytes comprise of the colour of
+the character while the leftmost make up the actual character to be printed. So
+when we wish to print a character to the screen, it must be of type: uint16_t.
+
+-----------------------------------------------------------------
+| 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+-----------------------------------------------------------------
+|--------- character -----------|------ fg -----|------ bg -----|
+
+The first 4 bytes define the background colour.
+The second 4 bytes define the foreground colour.
+The final 8 bytes define the character to be displayed.
+
+So for example the first thing we would need to do is set the entire console
+colour. We can choose BLACK for the background and LIGHT_GREY for the
+foreground. The foreground means that the character will appear LIGHT_GREY.
+These colours are known colour constants and must be defined.
+
+Because we have 8 bytes to modify we must use uint8_t. We only want to define
+the colour, not the character. The constants define the colours as:
+
+        BLACK = 0,
+	LIGHT_GREY = 7
+
+In binary this is equivalent to:
+
+        BLACK = 00000000
+	LIGHT_GREY = 00000111
+
+So how can we squeeze these two values into our colour variable uint8_t? 
+
+We can use bitwise operations. The first task is to combine both numbers
+to a single value. To do this, we use the bitwise OR operator |. 
+
+        -------------
+        | 0 | 0 | 0 |
+        | 0 | 1 | 1 |
+        | 1 | 0 | 1 |
+	| 1 | 1 | 1 |
+        -------------
+
+We use | because we wish to have both values in the single variable. The key is 
+to understand the logic oeprations or the OR operator display in the above
+table. If neither bit is set, set it to 0. If a bit is set in either the BLACK
+or the LIGHT_GREY variable, then set to 1. So we can translate this as:
+
+        BLACK       : 0000 0000
+        LIGHT_GREY  : 0000 0111
+        OR'd        : 0000 0111
+
+The problem is that even though we have successfully OR'd the values, the result
+does not match up with the bytes we need to modify. Remember from the top?
+
+        ---------------------------------
+	| 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+	---------------------------------
+        |------ fg -----|------ bg -----|
+      
+          0   0   0   0   0   1   1   1
+
+If we line our value up with the 8 byte word, the background is light grey and
+the foreground is black which is the wrong way around. To fix this we can use
+the bitwise shift operator to shift our background bits to the left.
+
+What this would achieve is shift the right most bits, left four positions so the
+above value would become:
+
+         uint8_t color = fg | bg;
+	 uint8_t final_color = color << 4;
+
+	 /* Can be also defined as: */
+	 uint8_t color = fg | bg << 4;
+
+The above 8 byte word would then look like this:
+
+        ---------------------------------
+	| 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+	---------------------------------
+	|------- fg ----|----- bg ------|
+	
+	  0   1   1   1   0   0   0   0
+
+We have the foreground the correct colour (light grey - 0111) and the background
+as black (0000). We shift 4 bits because we know that the background needs to be
+all 0's so the left shift worked perfect. And now we have a colour for the
+character to be printed.
+
+[http://www.gamedev.net/page/resources/_/technical/general-programming/bitwise-operations-in-c-r1563]
+
