@@ -1,0 +1,76 @@
+11/1/2016
+---------
+
+## VGA Colour Madness
+
+Note that I am using the British spelling for "colour" when writing and using
+the American spelling "color" for coding.
+
+Previously we saw how we use a single variable to hold the foreground and
+background colour:
+
+        uint8_t color = fg | bg << 4;
+
+Now that we have our foreground and background colour, the first thing to do
+is to colour the screen. It doesn't matter that there are no characters to
+type, the user must be presented with a console screen.
+
+To achieve this we write a blank character to each terminal buffer memory
+address starting at 0xB8000. We first declare the height and the width of the
+console screen:
+
+        static const size_t WIDTH = 80;
+	static const size_t HEIGHT = 25;
+
+This defines our console size, 25 rows x 80 columns. Each column is a character
+width. Since we need to write a blank character to the screen, (it's just a 
+whitespace), we must use the full 16 bits of the framebuffer. With our color
+variable above, the foreground and background colours of the character are
+ready, the next step is to define the whitespace character in the left most
+8 bits. This can be done with a combination of the bitwise unary and shift
+operators.
+
+        /* Define whitespace character to write. */
+	uint16_t c = ' ';
+	uint16_t color16 = color; /* 8 bit color from above. */
+
+	/* We want both character and color values in the single 16 bit buffer.
+	 * With this we also shift left 8 bits as the character value is
+	 * contained in the left most 8 bits of the framebuffer.
+	 */
+	 uint16_t blank = c | color16 << 8;
+
+The framebuffer now has the correct values. The whitespace character with a
+light grey foreground and a black background. The next step is to simply
+iterate over every character within the HEIGHT and WIDTH defined and set
+each to the blank variable.
+
+        /* Define the framebuffer initial position. */
+	uint16_t *fb = (uint16_t *) 0x8B000;
+
+	/* For each character on the row and column, define a constant
+	 * index which is the row number, times the width of the console
+	 * plus the column number. For example on the first run the value
+	 * for each variable will be:
+	 *         y = 0;
+	 *         x = 0;
+         *         VGA_WIDTH = 80;
+         *         index = 0 * 80 + 0;
+         * On the second run the column will be incremented to 1:
+         *         y = 0;
+         *         x = 1;
+         *         VGA_WIDTH = 80;
+         *         index = 0 * 80 + 1;
+         * On each iteration we move across and down the console setting
+	 * the blank character to the buffer.
+	 */
+	for (size_t y = 0; y < VGA_HEIGHT; y++) {
+	        for (size_t x = 0; x < VGA_WIDTH; x++) {
+		        const size_t index = y * VGA_WIDTH + x;
+			fb[index] = blank;
+		}
+	}
+
+By the end of this code block, the console will be initialized to a black screen
+80 x 25 characters in size. From here we can now begin to write information to
+the console.
