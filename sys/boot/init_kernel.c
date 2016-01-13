@@ -23,7 +23,7 @@
 static const size_t CONSOLE_WIDTH = 120;
 static const size_t CONSOLE_HEIGHT = 80;
 
-enum console_color = {
+enum console_color {
 	BLACK = 0,
 	BLUE = 1,
 	GREEN = 2,
@@ -46,7 +46,6 @@ enum console_color = {
 void
 console_init()
 {
-	size_t row, column = 0;
 	uint8_t color;
 	uint16_t *fb;
 
