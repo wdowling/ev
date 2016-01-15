@@ -58,7 +58,7 @@ console_init()
 	for (size_t y = 0; y < CONSOLE_HEIGHT; y++) {
 		for (size_t x = 0; x < CONSOLE_WIDTH; x++) {
 			const size_t i = y * CONSOLE_WIDTH + x;
-			fb[i] = ch | cl << 0; 
+			fb[i] = ch | cl << 8; 
 		}
 	}
 }
