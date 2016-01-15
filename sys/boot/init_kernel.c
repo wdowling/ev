@@ -20,6 +20,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define MSG "Initializing evOS..."
+
 static const size_t CONSOLE_WIDTH = 120;
 static const size_t CONSOLE_HEIGHT = 80;
 
@@ -41,24 +43,62 @@ enum console_color {
 	LIGHT_BROWN = 14,
 	WHITE = 15,
 };
-	
+
+/* Need to build a function that calculates the length of a string.*/
+size_t
+strlen(const char *msgstring)
+{
+	size_t ret = 0;
+	while (msgstring[ret] != 0)
+		ret++;
+
+	return ret;
+}
+/* Set the character along with the foreground and background colours to write
+ * to the console.
+ */
+uint16_t
+console_char(char c, uint16_t co)
+{
+	uint16_t ch = c;
+	uint16_t cl = co;
+	return ch | cl << 8;
+}
+
 /* The console is a simple black background, 120 columns wide, 80 rows high. */
 void
 console_init()
 {
 	uint8_t color;
 	uint16_t *fb;
+	const char *msg;
 
 	color = LIGHT_GREY | BLACK << 4;
-	uint16_t ch = ' ';
-	uint16_t cl = color;
 	fb = (uint16_t *) 0xB8000;
 
 	/* Color screen black. */
 	for (size_t y = 0; y < CONSOLE_HEIGHT; y++) {
 		for (size_t x = 0; x < CONSOLE_WIDTH; x++) {
 			const size_t i = y * CONSOLE_WIDTH + x;
-			fb[i] = ch | cl << 8; 
+			fb[i] = console_char(' ', color);
+		}
+	}
+
+	/* Now that the console is initialized, update the console with the
+	 * status of initialization.
+	 */
+        msg = MSG;
+	size_t msglen = strlen(msg);
+	size_t console_row = 0;
+	size_t console_column = 0;
+	for (size_t mc = 0; mc < msglen; mc++) {
+		const size_t j = console_row * CONSOLE_WIDTH + console_column;
+		fb[j] = console_char(msg[mc], color);
+		if (++console_column == CONSOLE_WIDTH) {
+			console_column = 0;
+			if (++console_column == CONSOLE_HEIGHT) {
+				console_column = 0;
+			}
 		}
 	}
 }
