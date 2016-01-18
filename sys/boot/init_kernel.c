@@ -19,10 +19,11 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "io.h"
 
 #define MSG "Initializing evOS..."
 
-static const size_t CONSOLE_WIDTH = 120;
+static const size_t CONSOLE_WIDTH = 25;
 static const size_t CONSOLE_HEIGHT = 80;
 
 enum console_color {
@@ -43,6 +44,16 @@ enum console_color {
 	LIGHT_BROWN = 14,
 	WHITE = 15,
 };
+
+void
+set_cursor(int row, int col)
+{
+	unsigned short position=(row * CONSOLE_HEIGHT) + col;
+        outb(0x0F, 0x3D4);
+	outb((unsigned char)(position&0xFF), 0x3D5);
+	outb(0x0E, 0x3D4);
+	outb((unsigned char)((position>>8)&0xFF), 0x3D5);
+}
 
 /* Need to build a function that calculates the length of a string.*/
 size_t
@@ -101,6 +112,8 @@ console_init()
 			}
 		}
 	}
+
+	set_cursor(1, 0);
 }
 
 void
