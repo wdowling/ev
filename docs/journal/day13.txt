@@ -1,0 +1,102 @@
+18/01/2016
+----------
+
+## Writing to the console
+
+The "kernel" can now boot thanks to Grub (this will be replaced with something 
+like the OpenBSD bootloader in the future) and print out a welcome message to
+the screen. At this point, we have loaded the init_kernel function and can begin
+the basic setup of an operating system.
+
+One thing we can do next is set the cursor position. This would indicate to the
+user that we would have more text to output or where the user can input text to
+the console. The framebuffer again is used for this via two I/O ports. Before we
+go further in writing the cursor, the following information is extracted from
+[http://wiki.osdev.org/VGA_Hardware] on VGA Hardware.
+
+* Over 300 VGA registers exist.
+* All of them are 8 bit registers.
+* 256k of video memory split into four 64k planes.
+* 16 colors means there are 4 bits per colour.
+
+                                            one byte
+--------------------------------------------------------------------------------------------------
+Bits    | 7        | 6         | 5        | 4         | 3        | 2         | 1        | 0 
+Plane 0 | 0        | 0         | 0        | 0         | 1        | 1         | 1        | 1
+Plane 1 | 0        | 0         | 1        | 1         | 1        | 1         | 0        | 0
+Plane 2 | 0        | 1         | 1        | 0         | 0        | 1         | 1        | 0
+Plane 3 | 0        | 1         | 0        | 1         | 0        | 1         | 0        | 1
+Colour  | 0000 (0) | 1100 (12) | 0110 (6) | 1010 (10) | 0011 (3) | 1111 (15) | 0101 (5) | 1001 (9)
+
+* Plane Write Enable register is used to choose the plane to be written.
+* Memory is written by accessing the correspoding address in memory.
+
+To be able to write to the console, we need to be able to carry out some
+low-level port input and output. In Linux, the functions can carry these
+tasks out are the in* and out* functions. The one we are interested in is the
+outb function:
+
+        void outb(unsigned char value, unsigned short int port);
+
+This is a piece of inline assembly which takes a an unsigned char value and
+writes it to the address specified by unsigned short int port.
+
+        static __inline void
+        outb (unsigned char __value, unsigned short int __port)
+        {
+	        __asm__ __volatile__ ("outb %b0,%w1": :"a" (__value), "Nd" (__port));
+	}
+
+Breaking out the assembly we have:
+
+        outb %b0, %w1
+
+out instructions in assembly are used for sending data to ports. The 'b'
+indicates that we are using the byte form of the instruction. The above
+instruction means send the byte __value to the port __port as a word. The inline
+values are associated to the registers:
+
+        a    %eax
+	b    %ebx
+	c    %ecx
+	d    %edx
+	S    %esi
+	D    %edi
+
+The "N" in "Nd" means an unsigned 8 bit integer constant. So the port is an
+unsigned 8 bit integer constant.
+
+Now that we understand the assembly bit, the C code calls a function which sends
+the data and port to the above assembly instructions. We basically set the row
+and column for where the cursor should land. To do this we must calculate the 
+position similar to the code in writing characters to the console:
+
+        position = current_height * total_width + current_width
+
+We must then send the appropriate data to the ports. There are two ports that
+must be used, 0x3D4 which is the control register and 0x3D5 which is the data
+register. Four calls are made in total to the outb() function. 
+The first is to send the command to the control register that we are setting
+the low byte, then send the byte to the data port 0x3D5. We then send the
+command to the control register indicating a high byte, and finally sending
+the byte to the data port.
+
+        outb(0x0F, 0x3D4);
+	outb((unsigned char)(position&0xFF), 0x3D5);
+	outb(0x0E, 0x3D4);
+	outb((unsigned char)((position>>8)&0xFF), 0x3D5);
+
+At this point, we can call the function with the position we would like the 
+cursor to be at. It would calculate the row and column and send the 16bit
+word to the data output port, writing it to the console.
+
+The original outb() code was taken from the Linux kernel so this should be
+removed and replaced with a different version using inline assembly or something
+in pure assembly.
+
+## Useful links
+
+[https://www.ibiblio.org/gferg/ldp/GCC-Inline-Assembly-HOWTO.html#s1]
+[http://www.ibm.com/developerworks/library/l-ia/]
+[http://wiki.osdev.org/Text_Mode_Cursor]
+[http://www.jamesmolloy.co.uk/tutorial_html/3.-The%20Screen.html]
