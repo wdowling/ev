@@ -1,0 +1,53 @@
+19/01/2016
+----------
+
+## IO Ports
+
+Yesterday I wrote some inline assembly and C to write the cursor to the VGA
+output ports. Two of the registers are 0x3D4 and 0x3D5 which are a control
+register and a data register respectively.
+
+### volatile keyword
+
+Before we move further, one of the pieces of code I wrote uses the volatile
+keyword.
+
+        __asm__ __volatile__ ()
+
+volatile is used to avoid compilers from carrying out optimizations on the 
+code which because it accesses low-level hardware, the may change frequently.
+
+Our code now contains the function to send an output to the ports on the VGA.
+We have all the core functionality of out first function - write(). Because
+this is a low-level kernel based function, a good method to differentiate
+it from the higher level libraries is to define it in it's own header file
+and to prepend the function with something like an underscore. This is the
+beginning of the proper structuring of the kernel. This is what I intend it
+to hopefully look like:
+
+        ev/
+	 - Makefile
+	 - sys/
+	   - boot/
+	     - boot.s
+	     - init_kernel.c
+	     - linker.ld
+	     - io.h
+	     - system.h
+	     - system.c
+
+The Makefile will need to be redone to be able to build the ISO. The system.h
+will contain the prototype __write function to begin with and the system.c 
+file will contain the function body. The init_kernel.c will be reduced in size
+to remove much of the grunt functionality. The idea is to be able to initialize
+different functionality in the kernel and with a simple call of the __write()
+function, display the status on the console. The init_kernel will remain to 
+initialize the console.
+
+Next steps:
+- Redo Makefile.
+- Pull out character writing functionality to __write().
+- Create separate functon to set the cursor.
+- Create a proper screen initialization process and display.
+
+
