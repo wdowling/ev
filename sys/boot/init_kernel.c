@@ -49,10 +49,10 @@ void
 set_cursor(int row, int col)
 {
 	unsigned short position=(row * CONSOLE_HEIGHT) + col;
-        outb(0x0F, 0x3D4);
-	outb((unsigned char)(position&0xFF), 0x3D5);
-	outb(0x0E, 0x3D4);
-	outb((unsigned char)((position>>8)&0xFF), 0x3D5);
+        outb(0x3D4, 0x0F);
+	outb(0x3D5, (uint8_t)(position&0xFF));
+	outb(0x3D4, 0x0E);
+	outb(0x3D5, (uint8_t)(position>>8)&0xFF);
 }
 
 /* Need to build a function that calculates the length of a string.*/
