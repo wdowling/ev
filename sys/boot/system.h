@@ -14,9 +14,12 @@
 #ifndef INCLUDE_SYSTEM_H
 #define INCLUDE_SYSTEM_H
 
+#include "console.h"
 #include <stdint.h>
 
 /* Internal kernel prototypes */
+size_t __strlen(const char *);
+uint16_t __write_char(char, uint16_t);
 void __write(const char *, size_t);
 
 #endif
