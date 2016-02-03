@@ -1,0 +1,21 @@
+02/01/2016
+----------
+
+Now that a basic Makefile is created, I can move on the next task which is to
+pull out the write functionality to an internal __write() function. 
+
+The function itself is protoyped in system.h and defined in system.c. The idea
+for the bootup process is to initialize the console (paint it black) and then
+call __write() to print output to screen. The current way to do it is to call
+the console_char() function which iterates over each character one-at-a-time
+and writes them to the framebuffer.
+
+I have created the following three functions:
+
+__strlen() - calculate length of character string.
+__write_char() - write character to console.
+__write() - write string to console.
+
+These have been separated out in to different source files, system.c and
+system.h. I have also moved some standard definitions to console.h to keep
+the init_kernel.c file clean.
